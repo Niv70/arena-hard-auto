@@ -650,6 +650,43 @@ def chat_completion_meta(model, messages, temperature, max_tokens, api_dict, **k
         "answer": output
     }
 
+@register_api("giga")
+def chat_completion_giga(messages, api_dict=None,**kwargs):
+    global CLIENT
+
+    from gigachat import GigaChat
+    from gigachat.models import Chat, Messages, MessagesRole
+    #
+    m = messages
+
+    CLIENT = GigaChat(credentials=os.environ.get('GIGA_CREDENTIALS'), verify_ssl_certs=False)
+    output = API_ERROR_OUTPUT
+
+    for _ in range(API_MAX_RETRY):
+        try:
+            completion = CLIENT.chat(
+                Chat(
+                    messages=[
+                        Messages(
+                            role=MessagesRole.USER,
+                            content=m[0]["content"]
+                        )
+                    ]
+                )
+            )
+            output = {
+                "answer": completion.choices[0].message.content
+            }
+            # print(output)
+            break
+        except KeyError:
+            print(type(e), e)
+            break
+        except Exception as e:
+            print(type(e), e)
+            time.sleep(API_RETRY_SLEEP)
+
+    return output
 
 def reorg_answer_file(answer_file):
     """Sort by question id and de-duplication"""
